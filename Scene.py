@@ -9,7 +9,11 @@ from GameObjects import Button
 class Scene:
     def __init__(self):
         """Creates an instance of all objects used in the game as well as creates the pygames window"""
+        self.updateables = []
+        self.drawables = []
+        
         pass
+
 
 
     def event_handler(self, event):

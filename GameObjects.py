@@ -5,9 +5,10 @@ import random
 import sys
 import math
 import copy
+from DrawableUpdateable import *
 
 # Reusable button object that can display a rectangle with text in it on the screen and exepts click events
-class Button():
+class Button(Drawable):
     """ Initializes the sprite object and creates the surface used for collision detection and drawing to the screen
 
         Args:

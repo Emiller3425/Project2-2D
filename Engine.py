@@ -6,6 +6,7 @@ import sys
 from Scene import Scene
 from pygame.time import *
 import math
+from DrawableUpdateable import *
 
 
 # Engine class that creates the clock and scene for the game
@@ -53,6 +54,14 @@ class Engine:
                     pygame.quit()
                     sys.exit()
                 
+
+            #Update game world
+            for updateables in Engine.current_scene.updateables:
+                updateables.Update(self.delta_time)
+
+            #Draw game world
+            for drawable in Engine.current_scene.drawables:
+                drawable.Draw()
 
             #Frame limiting
             # the following code will frame limit to whatever frame_rate is set 
