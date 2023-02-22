@@ -7,6 +7,7 @@ from Scene import Scene
 from pygame.time import *
 import math
 from DrawableUpdateable import *
+from Box2D import *
 
 
 # Engine class that creates the clock and scene for the game
@@ -16,6 +17,8 @@ class Engine:
     delta_time = 0
     events = None
     current_scene = None
+    # Changable frame rate variable for frame limiting
+    frame_rate = 60 
 
     def __init__(self, width=1024, height=768):
         pygame.init()
@@ -35,11 +38,8 @@ class Engine:
 
         self._clock = pygame.time.Clock()
 
-        # Changable frame rate variable for frame limiting
-        self.frame_rate = 60
-
         # initializes the scene for the game
-        self.current_scene = Scene()
+        Engine.current_scene = Scene()
 
 
     def loop(self):
@@ -56,17 +56,17 @@ class Engine:
                 
 
             #Update game world
-            for updateables in Engine.current_scene.updateables:
-                updateables.Update(self.delta_time)
+            for updateable in Engine.current_scene.updateables:
+                updateable.Update(self.delta_time)
 
             #Draw game world
             for drawable in Engine.current_scene.drawables:
-                drawable.Draw()
+                drawable.draw(self._screen)
 
             #Frame limiting
             # the following code will frame limit to whatever frame_rate is set 
-            Engine.delta_time = self._clock.tick(self.frame_rate) / 1000
+            Engine.delta_time = self._clock.tick(Engine.frame_rate) / 1000
 
-            pygame.display.flip
+            pygame.display.flip()
             pygame.display.update()
 

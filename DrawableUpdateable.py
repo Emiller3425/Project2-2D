@@ -7,5 +7,5 @@ class Updateables(metaclass=abc.ABCMeta):
 
 class Drawable(metaclass=abc.ABCMeta):
     @abc.abstractclassmethod
-    def Draw(self):
+    def Draw(self, screen):
         pass

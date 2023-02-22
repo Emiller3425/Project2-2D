@@ -6,6 +6,32 @@ import sys
 import math
 import copy
 from DrawableUpdateable import *
+from Box2D import *
+
+
+class Updater(Updateables):
+    def __init__(self, world, time_step, velocity, position):
+        super().__init__()
+        self.world = world
+        self.time_step = time_step
+        self.velocity = velocity
+        self.position = position
+    def update(self):
+        self.world.Step(self.time_step, self.velocity, self.position)
+        self.world.ClearForces()
+
+class Ground(Drawable):
+    def __init__(self, world, screen, x, y, w, h):
+        super().__init__()
+        self.screen = screen
+        self.body = world.CreateStaticBody(position=(x, y), shapes=b2PolygonShape(box=(w, h)))
+        self.image = pygame.Surface((2*w*100, 2*h*100))
+        self.image.fill((255, 255, 255))
+        self.rect = self.image.get_rect()
+        self.rect.center = self.body.position.x * 100, 768 - self.body.position.y * 100
+        
+    
+
 
 # Reusable button object that can display a rectangle with text in it on the screen and exepts click events
 class Button(Drawable):
