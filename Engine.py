@@ -6,7 +6,6 @@ import sys
 from Scene import Scene
 from pygame.time import *
 import math
-from DrawableUpdateable import *
 from Box2D import *
 
 
@@ -23,7 +22,7 @@ class Engine:
     def __init__(self, width=1024, height=768):
         pygame.init()
 
-        self.color = (0,0,0)
+        self.color = (255,255,255)
         self.title = "2D Game"
         # size of the screen
         self.screen_width = width
@@ -54,10 +53,9 @@ class Engine:
                     pygame.quit()
                     sys.exit()
                 
-
             #Update game world
             for updateable in Engine.current_scene.updateables:
-                updateable.Update(self.delta_time)
+                updateable.update(self.delta_time)
 
             #Draw game world
             for drawable in Engine.current_scene.drawables:
@@ -66,6 +64,8 @@ class Engine:
             #Frame limiting
             # the following code will frame limit to whatever frame_rate is set 
             Engine.delta_time = self._clock.tick(Engine.frame_rate) / 1000
+
+            
 
             pygame.display.flip()
             pygame.display.update()

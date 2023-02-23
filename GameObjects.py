@@ -5,34 +5,54 @@ import random
 import sys
 import math
 import copy
-from DrawableUpdateable import *
 from Box2D import *
+from Box2D.b2 import *
+
+class Drawable:
+    def init(self):
+        pass
+
+    def draw(self, delta_time):
+        raise NotImplementedError
 
 
-class Updater(Updateables):
+class Updateable:
+    def init(self):
+        pass
+
+    def update(self, screen):
+        raise NotImplementedError
+
+
+class DrawableUpdateable(Drawable, Updateable):
+    def init(self):
+        super().init()
+
+
+class Updater(Updateable):
     def __init__(self, world, time_step, velocity, position):
         super().__init__()
         self.world = world
         self.time_step = time_step
         self.velocity = velocity
         self.position = position
-    def update(self):
+    def update(self, delta_time):
         self.world.Step(self.time_step, self.velocity, self.position)
         self.world.ClearForces()
 
 class Ground(Drawable):
-    def __init__(self, world, screen, x, y, w, h):
+    def __init__(self, world, x, y, w, h):
         super().__init__()
-        self.screen = screen
         self.body = world.CreateStaticBody(position=(x, y), shapes=b2PolygonShape(box=(w, h)))
         self.image = pygame.Surface((2*w*100, 2*h*100))
-        self.image.fill((255, 255, 255))
+        self.image.fill((0, 0, 0))
         self.rect = self.image.get_rect()
         self.rect.center = self.body.position.x * 100, 768 - self.body.position.y * 100
+
+    def draw(self, screen):
+        screen.blit(self.image, self.body.position * 100)
         
     
-
-
 # Reusable button object that can display a rectangle with text in it on the screen and exepts click events
 class Button(Drawable):
     """ Initializes the sprite object and creates the surface used for collision detection and drawing to the screen
@@ -84,3 +104,4 @@ class Button(Drawable):
         """ Draws a rect at the position passed in at the constructor and blits the text at the same postion on the screen """
         pygame.draw.rect(self.screen, self.color, [self.x, self.y, self.width, self.height])
         self.screen.blit(self.text, (self.x + 2, self.y))
+
