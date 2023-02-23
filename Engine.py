@@ -47,8 +47,12 @@ class Engine:
         self._running = True
 
         while self._running:
+
+            self._screen.fill(self.color)
+
+            Engine.events = pygame.event.get()
             # loops through all events in the current game iteration
-            for event in pygame.event.get():
+            for event in Engine.events:
                 if event.type == QUIT:
                     pygame.quit()
                     sys.exit()
@@ -64,8 +68,6 @@ class Engine:
             #Frame limiting
             # the following code will frame limit to whatever frame_rate is set 
             Engine.delta_time = self._clock.tick(Engine.frame_rate) / 1000
-
-            
 
             pygame.display.flip()
             pygame.display.update()
