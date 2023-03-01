@@ -72,3 +72,7 @@ class Engine:
             pygame.display.flip()
             pygame.display.update()
 
+    def end(self):
+        """Shutdown PyGame and return the memory."""
+        pygame.quit()
+

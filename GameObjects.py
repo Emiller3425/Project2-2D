@@ -10,12 +10,15 @@ from Box2D.b2 import *
 import Engine as eg
 import Scene as scene
 
+b2w = 100
+w2b = 1/100
+
 class Drawable:
     def init(self):
         pass
 
     def draw(self, delta_time):
-        raise NotImplementedError
+        pass
 
 
 class Updateable:
@@ -23,7 +26,7 @@ class Updateable:
         pass
 
     def update(self, screen):
-        raise NotImplementedError
+        pass
 
 
 class DrawableUpdateable(Drawable, Updateable):
@@ -32,9 +35,9 @@ class DrawableUpdateable(Drawable, Updateable):
 
 
 class Updater(Updateable):
-    def __init__(self, world, time_step, velocity, position):
+    def __init__(self, time_step, velocity, position):
         super().__init__()
-        self.world = world
+        self.world = scene.Scene.world
         self.time_step = time_step
         self.velocity = velocity
         self.position = position
@@ -43,55 +46,86 @@ class Updater(Updateable):
         self.world.ClearForces()
 
 class Ground(Drawable, pygame.sprite.Sprite):
-    def __init__(self, world, x, y, w, h):
+    def __init__(self, x, y, w, h):
         super().__init__()
-        self.body = world.CreateStaticBody(position=(x, y), shapes=b2PolygonShape(box=(w, h)))
-        self.image = pygame.Surface((2*w*100, 2*h*100))
-        self.image.fill((0, 0, 0))
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        print(x)
+        print(y)
+        self.body = scene.Scene.world.CreateStaticBody(position=(x, y),
+        fixtures = b2FixtureDef(shape=b2PolygonShape(box=(w/2, h/2)), friction=1000, density=1000))
+        self.image = pygame.Surface((w*b2w, h*b2w))
+        self.image.fill((0, 255, 0))
         self.rect = self.image.get_rect()
-        self.rect.center = self.body.position.x * 100, 768 - self.body.position.y * 100
+        self.rect.center = self.body.position.x * b2w, 768 - self.body.position.y * b2w
 
     def draw(self, screen):
-        screen.blit(self.image, self.body.position * 100)
+        screen.blit(self.image, self.body.position * b2w)
+        #pygame.draw.rect(screen, (0, 255, 0), self.rect);
+        # for fixture in self.body.fixtures:
+        #     fixture.shape.draw(self.body, fixture)
 
 class Player(DrawableUpdateable, pygame.sprite.DirtySprite):
-    def __init__(self, world, player):
+    def __init__(self, player):
         super().__init__()
-        self.world = world
+        pygame.sprite.DirtySprite.__init__(self)
         self.player = player
+        color = (255, 0, 0) if player == 1 else (0, 0, 255)
 
-        self.body = world.CreateDynamicBody(position=(5, 5))
+        self.movingRight = False
+        self.movingLeft = False
+
+        self.body = scene.Scene.world.CreateDynamicBody(position=(1, 5 if player == 1 else 7))
         shape=b2CircleShape(radius=.25)
-        fixDef = b2FixtureDef(shape=shape, friction=0.3, restitution=.5, density=.5)
+        fixDef = b2FixtureDef(shape=shape, friction=0.9, restitution=.1, density=1)
         box = self.body.CreateFixture(fixDef)
         self.dirty = 2
-        d=.25*100*2
+        d=.25*b2w*2
         self.image = pygame.Surface((d,d), pygame.SRCALPHA, 32)
         self.image.convert_alpha()
         #self.image.fill((0, 0, 0))
         self.rect = self.image.get_rect()
-        pygame.draw.circle(self.image,(0, 101, 164) , self.rect.center, .25*100)
+        pygame.draw.circle(self.image, color, self.rect.center, .25*b2w)
 
     def update(self, delta_time):
-        self.rect.center = self.body.position[0] * 100, 768 - self.body.position[1] * 100
+        # for ground in scene.Scene.groundGroup:
+        #     print("Player: " + str(self.rect.x) + ", " + str(self.rect.y))
+        #     print("Ground: " + str(ground.rect.x) + ", " + str(ground.rect.y))
+        self.rect.center = self.body.position[0] * b2w, 760 - self.body.position[1] * b2w
         collided = pygame.sprite.spritecollide(self, scene.Scene.groundGroup, False)
+
+        print(collided)
+
         for event in eg.Engine.events:
             #if event.type == pg.MOUSEMOTION:
             #    print(pg.mouse.get_pos())
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    if len(collided) > 0:
-                        self.body.ApplyForceToCenter( (0, 100), True)
-                elif event.key == pygame.K_a:
-                    self.body.ApplyForceToCenter( (-100, 0), True)
-                elif event.key == pygame.K_d:
-                    self.body.ApplyForceToCenter( (100, 0), True)
+                if event.key == (pygame.K_w if self.player == 1 else pygame.K_UP):
+                    #if len(collided) > 0:
+                    self.body.ApplyForceToCenter(b2Vec2(0, 50), True)
+                if event.key == (pygame.K_a if self.player == 1 else pygame.K_LEFT):
+                    self.movingLeft = True
+                if event.key == (pygame.K_d if self.player == 1 else pygame.K_RIGHT):
+                    self.movingRight = True
+
+            if event.type == pygame.KEYUP:
+                if event.key == (pygame.K_a if self.player == 1 else pygame.K_LEFT):
+                    self.movingLeft = False
+                    self.body.linearVelocity = b2Vec2(0, self.body.linearVelocity.y)
+                if event.key == (pygame.K_d if self.player == 1 else pygame.K_RIGHT):
+                    self.movingRight = False
+                    self.body.linearVelocity = b2Vec2(0, self.body.linearVelocity.y)
+
+            if self.movingRight:
+                self.body.linearVelocity = b2Vec2(200 * delta_time, self.body.linearVelocity.y)
+            if self.movingLeft:
+                self.body.linearVelocity = b2Vec2(-200 * delta_time, self.body.linearVelocity.y)
+
 
     def draw(self, screen):
-        if self.dirty > 0:
-            screen.blit(self.image, self.body.position * 100)
-        else:
-            self.dirty -= 1
+        screen.blit(self.image, self.body.position * b2w)
 
 
     
