@@ -45,27 +45,83 @@ class Updater(Updateable):
         self.world.Step(self.time_step, self.velocity, self.position)
         self.world.ClearForces()
 
+class GroundButton(Drawable, pygame.sprite.Sprite):
+    def __init__(self, x, y, platform):
+        super().__init__()
+        self.x = x
+        self.y = y
+        self.w = .2
+        self.h = .2
+        self.type = type
+        self.color = (0,0,0)
+        self.platfrom = platform
+        self.body = scene.Scene.world.CreateStaticBody(position=(x, y),
+        fixtures = b2FixtureDef(shape=b2PolygonShape(box=(self.w/2, self.h/2)), friction=1000, density=1000))
+        self.image = pygame.Surface((self.w*b2w,self.h*b2w))
+        self.image.fill(self.color)
+        self.rect = self.image.get_rect()
+        self.rect.center = x * b2w, 768 - y * b2w
+
+    def pressed(self):
+        scene.Scene.buttonPress(eg.Engine.current_scene, self.platfrom)
+
+    def unpressed(self):
+        scene.Scene.buttonUnpress(eg.Engine.current_scene, self.platfrom)
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+
+class Door(Drawable, pygame.sprite.Sprite):
+    def __init__(self, x, y, type):
+        super().__init__()
+        self.x = x
+        self.y = y
+        self.w = .5
+        self.h = 1
+        self.type = type
+        self.color = (200, 0, 0) if type == 1 else (0, 0, 200)
+        #self.body = scene.Scene.world.CreateStaticBody(position=(x, y),
+        #fixtures = b2FixtureDef(shape=b2PolygonShape(box=(self.w/2, self.h/2)), friction=1000, density=1000))
+        self.image = pygame.Surface((self.w*b2w,self.h*b2w))
+        self.image.fill(self.color)
+        self.rect = self.image.get_rect()
+        self.rect.center = x * b2w, 768 - y * b2w
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+
 class Ground(Drawable, pygame.sprite.Sprite):
-    def __init__(self, x, y, w, h):
+    def __init__(self, x, y, w, h, type):
         super().__init__()
         self.x = x
         self.y = y
         self.w = w
         self.h = h
-        print(x)
-        print(y)
-        self.body = scene.Scene.world.CreateStaticBody(position=(x, y),
+        self.type = type
+
+        if type == 1:
+            self.color = (200, 0, 0)
+        elif type == 2:
+            self.color = (0, 0, 200)
+        elif type == 3:
+            self.color = (0, 200, 0)
+        else:
+            self.color = (100, 100, 100)
+
+        self.body = scene.Scene.world.CreateStaticBody(position=(self.x, self.y),
         fixtures = b2FixtureDef(shape=b2PolygonShape(box=(w/2, h/2)), friction=1000, density=1000))
         self.image = pygame.Surface((w*b2w, h*b2w))
-        self.image.fill((0, 255, 0))
+        self.image.fill(self.color)
         self.rect = self.image.get_rect()
         self.rect.center = self.body.position.x * b2w, 768 - self.body.position.y * b2w
 
+    def move(self, new_x):
+        self.x = new_x
+        self.body.position = (self.x, self.y)
+        self.rect.center = self.x * b2w, 768 - self.body.position.y * b2w
+
     def draw(self, screen):
-        screen.blit(self.image, self.body.position * b2w)
-        #pygame.draw.rect(screen, (0, 255, 0), self.rect);
-        # for fixture in self.body.fixtures:
-        #     fixture.shape.draw(self.body, fixture)
+        screen.blit(self.image, self.rect)
 
 class Player(DrawableUpdateable, pygame.sprite.DirtySprite):
     def __init__(self, player):
@@ -77,7 +133,11 @@ class Player(DrawableUpdateable, pygame.sprite.DirtySprite):
         self.movingRight = False
         self.movingLeft = False
 
-        self.body = scene.Scene.world.CreateDynamicBody(position=(1, 5 if player == 1 else 7))
+        self.atFinalDoor = False
+
+        self.activeButton = None
+
+        self.body = scene.Scene.world.CreateDynamicBody(position=(1 if player == 1 else 9, .5))
         shape=b2CircleShape(radius=.25)
         fixDef = b2FixtureDef(shape=shape, friction=0.9, restitution=.1, density=1)
         box = self.body.CreateFixture(fixDef)
@@ -89,22 +149,45 @@ class Player(DrawableUpdateable, pygame.sprite.DirtySprite):
         self.rect = self.image.get_rect()
         pygame.draw.circle(self.image, color, self.rect.center, .25*b2w)
 
-    def update(self, delta_time):
-        # for ground in scene.Scene.groundGroup:
-        #     print("Player: " + str(self.rect.x) + ", " + str(self.rect.y))
-        #     print("Ground: " + str(ground.rect.x) + ", " + str(ground.rect.y))
-        self.rect.center = self.body.position[0] * b2w, 760 - self.body.position[1] * b2w
-        collided = pygame.sprite.spritecollide(self, scene.Scene.groundGroup, False)
+    def reset(self):
+        self.body.position = (1 if self.player == 1 else 9, .5)
 
-        print(collided)
+    def update(self, delta_time):
+        self.rect.center = self.body.position[0] * b2w, 772 - self.body.position[1] * b2w
+        collided = pygame.sprite.spritecollide(self, scene.Scene.groundGroup, False)
+        doorCollision = pygame.sprite.spritecollide(self, scene.Scene.doorGroup, False)
+        buttonCollision = pygame.sprite.spritecollide(self, scene.Scene.buttonGroup, False)
+
+        if len(collided) > 0:
+            if collided[0].type == 1 and not (self.player == 1):
+                scene.Scene.reset_players(eg.Engine.current_scene)
+            elif collided[0].type == 2 and not (self.player == 2):
+                scene.Scene.reset_players(eg.Engine.current_scene)
+            elif collided[0].type == 3:
+                scene.Scene.reset_players(eg.Engine.current_scene)
+
+
+        if len(doorCollision) > 0:
+            if doorCollision[0].type == self.player:
+                self.atFinalDoor = True
+            else:
+                self.atFinalDoor = False
+
+        if len(buttonCollision) > 0:
+            self.activeButton = buttonCollision[0]
+            buttonCollision[0].pressed()
+        else:
+            if self.activeButton:
+                self.activeButton.unpressed()
+                self.activeButton = None
+
+        scene.Scene.check_win(eg.Engine.current_scene)
 
         for event in eg.Engine.events:
-            #if event.type == pg.MOUSEMOTION:
-            #    print(pg.mouse.get_pos())
             if event.type == pygame.KEYDOWN:
                 if event.key == (pygame.K_w if self.player == 1 else pygame.K_UP):
-                    #if len(collided) > 0:
-                    self.body.ApplyForceToCenter(b2Vec2(0, 50), True)
+                    if len(collided) > 0 or len(buttonCollision) > 0:
+                        self.body.ApplyForceToCenter(b2Vec2(0, 70), True)
                 if event.key == (pygame.K_a if self.player == 1 else pygame.K_LEFT):
                     self.movingLeft = True
                 if event.key == (pygame.K_d if self.player == 1 else pygame.K_RIGHT):
@@ -113,23 +196,23 @@ class Player(DrawableUpdateable, pygame.sprite.DirtySprite):
             if event.type == pygame.KEYUP:
                 if event.key == (pygame.K_a if self.player == 1 else pygame.K_LEFT):
                     self.movingLeft = False
-                    self.body.linearVelocity = b2Vec2(0, self.body.linearVelocity.y)
+                    self.body.linearVelocity = b2Vec2(0.0, self.body.linearVelocity.y)
                 if event.key == (pygame.K_d if self.player == 1 else pygame.K_RIGHT):
                     self.movingRight = False
-                    self.body.linearVelocity = b2Vec2(0, self.body.linearVelocity.y)
+                    self.body.linearVelocity = b2Vec2(0.0, self.body.linearVelocity.y)
 
-            if self.movingRight:
-                self.body.linearVelocity = b2Vec2(200 * delta_time, self.body.linearVelocity.y)
-            if self.movingLeft:
-                self.body.linearVelocity = b2Vec2(-200 * delta_time, self.body.linearVelocity.y)
+        if self.movingRight:
+            self.body.linearVelocity = b2Vec2(200 * delta_time, self.body.linearVelocity.y)
+        elif self.movingLeft:
+            self.body.linearVelocity = b2Vec2(-200 * delta_time, self.body.linearVelocity.y)
+        else:
+            self.body.linearVelocity = b2Vec2(0.0, self.body.linearVelocity.y)
 
 
     def draw(self, screen):
-        screen.blit(self.image, self.body.position * b2w)
+        screen.blit(self.image, self.rect)
 
 
-    
-        
     
 # Reusable button object that can display a rectangle with text in it on the screen and exepts click events
 class Button(Drawable):

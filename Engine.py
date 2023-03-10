@@ -16,6 +16,7 @@ class Engine:
     delta_time = 0
     events = None
     current_scene = None
+    screen = None
     # Changable frame rate variable for frame limiting
     frame_rate = 60 
 
@@ -31,6 +32,8 @@ class Engine:
         self._screen = pygame.display.set_mode((width, height))
         pygame.display.set_caption(self.title)
         self._screen.fill(self.color)
+
+        Engine.screen = self._screen
 
         # determines if the game loop is running or not
         self._running = False
