@@ -173,9 +173,9 @@ class Player(DrawableUpdateable, pygame.sprite.DirtySprite):
         box = self.body.CreateFixture(fixDef)
         self.dirty = 2
         if player == 1:
-            self.image = pygame.transform.scale(scene.Scene.sprites[33], (self.d, self.d))
-        else:
             self.image = pygame.transform.scale(scene.Scene.sprites[5], (self.d, self.d))
+        else:
+            self.image = pygame.transform.scale(scene.Scene.sprites[33], (self.d, self.d))
         self.rect = self.image.get_rect()
 
     def reset(self):
@@ -218,7 +218,7 @@ class Player(DrawableUpdateable, pygame.sprite.DirtySprite):
         for event in eg.Engine.events:
             if event.type == pygame.KEYDOWN:
                 if event.key == (pygame.K_w if self.player == 1 else pygame.K_UP):
-                    if len(collided) > 0 or len(buttonCollision) or len(movableRightCollision) or len(movableLeftCollision) > 0:
+                    if len(collided) > 0 or len(buttonCollision) > 0 or len(movableRightCollision) > 0 or len(movableLeftCollision) > 0:
                         self.body.ApplyForceToCenter(b2Vec2(0, 70), True)
                         self.jump()
                 if event.key == (pygame.K_a if self.player == 1 else pygame.K_LEFT):
@@ -232,16 +232,16 @@ class Player(DrawableUpdateable, pygame.sprite.DirtySprite):
                 if event.key == (pygame.K_a if self.player == 1 else pygame.K_LEFT):
                     self.movingLeft = False
                     if self.player == 1:
-                        self.image = pygame.transform.flip(pygame.transform.scale(scene.Scene.sprites[33], (self.d, self.d)), True, False)
-                    else:
                         self.image = pygame.transform.flip(pygame.transform.scale(scene.Scene.sprites[5], (self.d, self.d)), True, False)
+                    else:
+                        self.image = pygame.transform.flip(pygame.transform.scale(scene.Scene.sprites[33], (self.d, self.d)), True, False)
                     self.body.linearVelocity = b2Vec2(0.0, self.body.linearVelocity.y)
                 if event.key == (pygame.K_d if self.player == 1 else pygame.K_RIGHT):
                     self.movingRight = False
                     if self.player == 1:
-                        self.image = pygame.transform.scale(scene.Scene.sprites[33], (self.d, self.d))
-                    else:
                         self.image = pygame.transform.scale(scene.Scene.sprites[5], (self.d, self.d))
+                    else:
+                        self.image = pygame.transform.scale(scene.Scene.sprites[33], (self.d, self.d))
                     self.body.linearVelocity = b2Vec2(0.0, self.body.linearVelocity.y)
 
         if self.movingRight:
@@ -256,30 +256,30 @@ class Player(DrawableUpdateable, pygame.sprite.DirtySprite):
     def walkingRight(self):
         if self.player == 1:
             for i in range(0, 2):
-                self.image = pygame.transform.scale(scene.Scene.sprites[33 + i], (self.d, self.d))
+                self.image = pygame.transform.scale(scene.Scene.sprites[5 + i], (self.d, self.d))
         else:
             for i in range(0, 2):
-                self.image = pygame.transform.scale(scene.Scene.sprites[5 + i], (self.d, self.d))
+                self.image = pygame.transform.scale(scene.Scene.sprites[33 + i], (self.d, self.d))
     
     def walkingLeft(self):
         if self.player == 1:
             for i in range(0, 2):
-                self.image = pygame.transform.flip(pygame.transform.scale(scene.Scene.sprites[33 + i], (self.d, self.d)), True, False)
+                self.image = pygame.transform.flip(pygame.transform.scale(scene.Scene.sprites[5 + i], (self.d, self.d)), True, False)
         else:
             for i in range(0, 2):
-                self.image = pygame.transform.flip(pygame.transform.scale(scene.Scene.sprites[5 + i], (self.d, self.d)), True, False)
+                self.image = pygame.transform.flip(pygame.transform.scale(scene.Scene.sprites[33 + i], (self.d, self.d)), True, False)
     
     def jump(self):
         if self.player == 1:
             if self.facingRight:
-                self.image = pygame.transform.scale(scene.Scene.sprites[36], (self.d, self.d))
-            else:
-                self.image = pygame.transform.flip(pygame.transform.scale(scene.Scene.sprites[36], (self.d, self.d)), True, False)
-        else:
-            if self.facingRight:
                 self.image = pygame.transform.scale(scene.Scene.sprites[8], (self.d, self.d))
             else:
                 self.image = pygame.transform.flip(pygame.transform.scale(scene.Scene.sprites[8], (self.d, self.d)), True, False)
+        else:
+            if self.facingRight:
+                self.image = pygame.transform.scale(scene.Scene.sprites[36], (self.d, self.d))
+            else:
+                self.image = pygame.transform.flip(pygame.transform.scale(scene.Scene.sprites[36], (self.d, self.d)), True, False)
 
 
     def draw(self, screen):

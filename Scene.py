@@ -47,8 +47,8 @@ class Scene:
 
     def check_win(self):
         if self.player1.atFinalDoor and self.player2.atFinalDoor:
-            button = Button(200, 1000, Color(255, 255, 255), eg.Engine.screen, 80, 50,
-                            'Made by: Josh Fletcher and Ethan Miller', (0, 0, 0), (255, 255, 255), 'timesnewroman', 50)
+            button = Button(200, 1000, Color(50,50,50), eg.Engine.screen, 80, 80,
+                            'Made by: Josh Fletcher and Ethan Miller', (0, 0, 0), (50,50,50), 'timesnewroman', 50)
             button.draw()
 
     def add_sprites(self):
@@ -106,21 +106,21 @@ class Scene:
     def buttonPress(self, type):
         if type == 1 and self.leftPressed == False:
             for moveable in Scene.moveableRightGroup:
-                moveable.move(-6)
+                moveable.move(-2)
             self.leftPressed = True
         elif type == 2 and self.rightPressed == False:
             for moveable in Scene.moveableLeftGroup:
-                moveable.move(6)
+                moveable.move(2)
             self.rightPressed = True
 
     def buttonUnpress(self, type):
         if type == 1 and self.leftPressed == True:
             for moveable in Scene.moveableRightGroup:
-                moveable.move(6)
+                moveable.move(2)
             self.leftPressed = False
         elif type == 2 and self.rightPressed == True:
             for moveable in Scene.moveableLeftGroup:
-                moveable.move(-6)
+                moveable.move(-2)
             self.rightPressed = False
 
     def addStallagtites(self):
@@ -206,12 +206,12 @@ class Scene:
             Scene.groundGroup.add(ground)
             Scene.drawables.append(ground)
         # jump platform left
-        for i in range(0, 3):
+        for i in range(0, 4):
             ground = Ground(3.14 + i * 0.31, 0.8, .32, .32, 0)
             Scene.groundGroup.add(ground)
             Scene.drawables.append(ground)
         # jump platform right
-        for i in range(0, 3):
+        for i in range(0, 4):
             ground = Ground(6 + i * 0.31, 0.8, .32, .32, 0)
             Scene.groundGroup.add(ground)
             Scene.drawables.append(ground)
@@ -228,10 +228,10 @@ class Scene:
         # left button platform
         for i in range(0, 3):
             ground = Ground(3.7 + i * 0.31, 5, .32, .32, 0)
-            Scene.moveableLeftGroup.add(ground)
+            Scene.moveableRightGroup.add(ground)
             Scene.drawables.append(ground)
         # right button platform
         for i in range(0, 3):
             ground = Ground(5.7 + i * 0.31, 5, .32, .32, 0)
-            Scene.moveableRightGroup.add(ground)
+            Scene.moveableLeftGroup.add(ground)
             Scene.drawables.append(ground)
