@@ -23,7 +23,7 @@ class Engine:
     def __init__(self, width=1024, height=768):
         pygame.init()
 
-        self.color = (255,255,255)
+        self.color = (50,50,50)
         self.title = "2D Game"
         # size of the screen
         self.screen_width = width

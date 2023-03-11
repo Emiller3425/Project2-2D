@@ -1,32 +1,45 @@
 
-import pygame, sys
+import pygame
+import sys
 from pygame.locals import *
+from pygame import mixer
 import sys
 from Box2D import *
 from GameObjects import *
 import Engine as eg
 
 # Creates the pygames window and holds all game objects
+
+
 class Scene:
+
+    pygame.mixer.init()
+    mixer.music.load('Cave.mp3')
+    mixer.music.play(-1)
 
     updateables = []
     drawables = []
+    sprites = []
 
     groundGroup = pygame.sprite.Group()
+    moveableLeftGroup = pygame.sprite.Group()
+    moveableRightGroup = pygame.sprite.Group()
     doorGroup = pygame.sprite.Group()
     buttonGroup = pygame.sprite.Group()
+    StallagtiteGroup = pygame.sprite.Group()
 
     gravity = b2Vec2(0, -10.0)
     world = b2World(gravity, doSleep=False)
 
-    
+    rightPressed = False
+    leftPressed = False
+
     def __init__(self):
-        
+
         self.time_step = 1.0 / eg.Engine.frame_rate
         self.vel_iters, self.pos_iters = 6, 2
-
+        self.add_sprites()
         self.add_objects()
-
 
     def reset_players(self):
         self.player1.reset()
@@ -34,12 +47,25 @@ class Scene:
 
     def check_win(self):
         if self.player1.atFinalDoor and self.player2.atFinalDoor:
-            button = Button(200, 1000, Color(255,255,255), eg.Engine.screen, 80, 50, 'Made by: Josh Fletcher and Ethan Miller', (0, 0, 0), (255,255,255), 'timesnewroman', 50)
+            button = Button(200, 1000, Color(255, 255, 255), eg.Engine.screen, 80, 50,
+                            'Made by: Josh Fletcher and Ethan Miller', (0, 0, 0), (255, 255, 255), 'timesnewroman', 50)
             button.draw()
+
+    def add_sprites(self):
+        sprite_sheet = pygame.image.load('spritesheet.png').convert_alpha()
+        sprite_width, sprite_height = 32, 32
+        for row in range(sprite_sheet.get_height() // sprite_height):
+            for col in range(sprite_sheet.get_width() // sprite_width):
+                x = col * sprite_width
+                y = row * sprite_height
+                sprite = sprite_sheet.subsurface(
+                    pygame.Rect(x, y, sprite_width, sprite_height))
+                Scene.sprites.append(sprite)
 
     def add_objects(self):
         """Creates an instance of all objects used in the game and adds them to the correct lists"""
-        Scene.updateables.append(Updater(self.time_step, self.vel_iters, self.pos_iters))
+        Scene.updateables.append(
+            Updater(self.time_step, self.vel_iters, self.pos_iters))
 
         self.player1 = Player(1)
         self.player2 = Player(2)
@@ -47,11 +73,11 @@ class Scene:
         player1Door = Door(4, 3, 1)
         player2Door = Door(6, 3, 2)
 
-        leftBottomButton = GroundButton(.55, 3.6, 2)
-        rightBottomButton = GroundButton(9.5, 3.6, 1)
+        leftBottomButton = GroundButton(.55, 3.6, 2, False)
+        rightBottomButton = GroundButton(9.5, 3.6, 1, False)
 
-        leftTopButton = GroundButton(3, 6.1, 2)
-        rightTopButton = GroundButton(7, 6.1, 1)
+        leftTopButton = GroundButton(3, 6.1, 2, False)
+        rightTopButton = GroundButton(7, 6.1, 1, False)
 
         Scene.drawables.append(leftBottomButton)
         Scene.drawables.append(rightBottomButton)
@@ -74,97 +100,138 @@ class Scene:
         Scene.updateables.append(self.player2)
         Scene.drawables.append(self.player2)
 
+        self.addStallagtites()
         self.add_platforms()
 
-
     def buttonPress(self, type):
-        if type == 1:
-            self.moveableLeftPlatform.move(2)
-        elif type == 2:
-            self.moveableRightPlatform.move(8)
+        if type == 1 and self.leftPressed == False:
+            for moveable in Scene.moveableRightGroup:
+                moveable.move(-6)
+            self.leftPressed = True
+        elif type == 2 and self.rightPressed == False:
+            for moveable in Scene.moveableLeftGroup:
+                moveable.move(6)
+            self.rightPressed = True
 
     def buttonUnpress(self, type):
-        if type == 1:
-            self.moveableLeftPlatform.move(4)
-        elif type == 2:
-            self.moveableRightPlatform.move(6)
+        if type == 1 and self.leftPressed == True:
+            for moveable in Scene.moveableRightGroup:
+                moveable.move(6)
+            self.leftPressed = False
+        elif type == 2 and self.rightPressed == True:
+            for moveable in Scene.moveableLeftGroup:
+                moveable.move(-6)
+            self.rightPressed = False
+
+    def addStallagtites(self):
+        for i in range(0, 21):
+            stal = Stallagtite(0.50 * i, 7.0, 0.59, 0.100)
+            Scene.drawables.append(stal)
+            Scene.updateables.append(stal)
 
     def add_platforms(self):
-        ceiling = Ground(0, 7.6, 25, .5, 0)
-        floor = Ground(0, 0, 25, .5, 0)
-        rightWall = Ground(10.1, 0, .5, 25, 0)
-        leftWall = Ground(0, 0, .5, 25, 0)
-
-        leftSidePlatform = Ground(0, 1.5, 3, .2, 0)
-        rightSidePlatform = Ground(10.1, 1.5, 3, .2, 0)
-
-        leftSidePlatformTop = Ground(0, 3.5, 3, .2, 0)
-        rightSidePlatformTop = Ground(10.1, 3.5, 3, .2, 0)
-
-        largeBottomMiddlePlatform = Ground(5, 2.5, 6.5, .25, 0)
-
-        leftPole = Ground(3, 4.2, .2, 3.5, 0)
-        rightPole = Ground(7, 4.2, .2, 3.5, 0)
-
-        topOfLeftPolePlatform = Ground(3, 6, 2, .2, 0)
-        topOfRightPolePlatform = Ground(7, 6, 2, .2, 0)
-
-        betweenDoorsPlatform = Ground(5, 4, 1.2, .2, 0)
-
-        bottomGreenArea = Ground(5, .1, 4, .5, 3)
-
-        jumpPlatformLeft = Ground(4, .8, 1, .1, 0)
-        jumpPlatformRight = Ground(6, .8, 1, .1, 0)
-
-        leftBluePlatform = Ground(2.3, 2.6, 1, .1, 2)
-        rightRedPlatform = Ground(7.7, 2.6, 1, .1, 1)
-
-        self.moveableLeftPlatform = Ground(4, 5, 1, .2, 0)
-        self.moveableRightPlatform = Ground(6, 5, 1, .2, 0)
-
-        Scene.groundGroup.add(floor)
-        Scene.groundGroup.add(ceiling)
-        Scene.groundGroup.add(rightWall)
-        Scene.groundGroup.add(leftWall)
-        Scene.groundGroup.add(leftSidePlatform)
-        Scene.groundGroup.add(rightSidePlatform)
-        Scene.groundGroup.add(leftSidePlatformTop)
-        Scene.groundGroup.add(rightSidePlatformTop)
-        Scene.groundGroup.add(largeBottomMiddlePlatform)
-        Scene.groundGroup.add(leftPole)
-        Scene.groundGroup.add(rightPole)
-        Scene.groundGroup.add(self.moveableLeftPlatform)
-        Scene.groundGroup.add(self.moveableRightPlatform)
-        Scene.groundGroup.add(topOfLeftPolePlatform)
-        Scene.groundGroup.add(topOfRightPolePlatform)
-        Scene.groundGroup.add(betweenDoorsPlatform)
-        Scene.groundGroup.add(bottomGreenArea)
-        Scene.groundGroup.add(jumpPlatformLeft)
-        Scene.groundGroup.add(jumpPlatformRight)
-        Scene.groundGroup.add(leftBluePlatform)
-        Scene.groundGroup.add(rightRedPlatform)
-
-        Scene.drawables.append(floor)
-        Scene.drawables.append(ceiling)
-        Scene.drawables.append(rightWall)
-        Scene.drawables.append(leftWall)
-        Scene.drawables.append(leftSidePlatform)
-        Scene.drawables.append(rightSidePlatform)
-        Scene.drawables.append(leftSidePlatformTop)
-        Scene.drawables.append(rightSidePlatformTop)
-        Scene.drawables.append(largeBottomMiddlePlatform)
-        Scene.drawables.append(leftPole)
-        Scene.drawables.append(rightPole)
-        Scene.drawables.append(self.moveableLeftPlatform)
-        Scene.drawables.append(self.moveableRightPlatform)
-        Scene.drawables.append(topOfLeftPolePlatform)
-        Scene.drawables.append(topOfRightPolePlatform)
-        Scene.drawables.append(betweenDoorsPlatform)
-        Scene.drawables.append(bottomGreenArea)
-        Scene.drawables.append(jumpPlatformLeft)
-        Scene.drawables.append(jumpPlatformRight)
-        Scene.drawables.append(leftBluePlatform)
-        Scene.drawables.append(rightRedPlatform)
-
-
-
+        # cieling
+        for i in range(0, 34):
+            ground = Ground(i * 0.31, 7.6, .32, .32, 0)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # floor
+        for i in range(0, 34):
+            ground = Ground(i * 0.31, 0, .32, .32, 0)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # right wall
+        for i in range(0, 26):
+            ground = Ground(10.1, i * 0.31, .32, .32, 0)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # left wall
+        for i in range(0, 26):
+            ground = Ground(0, i * 0.31, .32, .32, 0)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # leftside platforms
+        for i in range(1, 5):
+            ground = Ground(i * 0.31, 1.5, .32, .32, 0)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # rightside platforms
+        for i in range(1, 5):
+            ground = Ground(10.1 - i * 0.31, 1.5, .32, .32, 0)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # leftside top platform
+        for i in range(1, 5):
+            ground = Ground(i * 0.31, 3.5, .32, .32, 0)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # rightside top platform
+        for i in range(1, 5):
+            ground = Ground(10.1 - i * 0.31, 3.5, .32, .32, 0)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # large bottom middle platform
+        for i in range(0, 21):
+            ground = Ground(1.92 + i * 0.31, 2.5, .32, .32, 0)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # left pole
+        for i in range(0, 12):
+            ground = Ground(3, 2.5 + i * 0.31, .32, .32, 0)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # right pole
+        for i in range(0, 12):
+            ground = Ground(7, 2.5 + i * 0.31, .32, .32, 0)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # left pole platform
+        for i in range(0, 5):
+            ground = Ground(2.36 + i * 0.31, 6, .32, .32, 0)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # right pole platform
+        for i in range(0, 5):
+            ground = Ground(6.36 + i * 0.31, 6, .32, .32, 0)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # between doors platform
+        for i in range(0, 3):
+            ground = Ground(4.68 + i * 0.31, 4, .32, .32, 0)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # green area
+        for i in range(0, 15):
+            ground = Ground(2.82 + i * 0.31, 0.02, .32, .32, 3)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # jump platform left
+        for i in range(0, 3):
+            ground = Ground(3.14 + i * 0.31, 0.8, .32, .32, 0)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # jump platform right
+        for i in range(0, 3):
+            ground = Ground(6 + i * 0.31, 0.8, .32, .32, 0)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # blue platform
+        for i in range(0, 4):
+            ground = Ground(1.75 + i * 0.31, 2.51, .32, .32, 2)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # red platform
+        for i in range(0, 4):
+            ground = Ground(7.32 + i * 0.31, 2.51, .32, .32, 1)
+            Scene.groundGroup.add(ground)
+            Scene.drawables.append(ground)
+        # left button platform
+        for i in range(0, 3):
+            ground = Ground(3.7 + i * 0.31, 5, .32, .32, 0)
+            Scene.moveableLeftGroup.add(ground)
+            Scene.drawables.append(ground)
+        # right button platform
+        for i in range(0, 3):
+            ground = Ground(5.7 + i * 0.31, 5, .32, .32, 0)
+            Scene.moveableRightGroup.add(ground)
+            Scene.drawables.append(ground)

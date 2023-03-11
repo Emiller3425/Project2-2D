@@ -1,8 +1,10 @@
 
 import pygame, sys
+from pygame import mixer
 from pygame.locals import *
 import random
 import sys
+import json
 import math
 import copy
 from Box2D import *
@@ -46,7 +48,7 @@ class Updater(Updateable):
         self.world.ClearForces()
 
 class GroundButton(Drawable, pygame.sprite.Sprite):
-    def __init__(self, x, y, platform):
+    def __init__(self, x, y, platform, state):
         super().__init__()
         self.x = x
         self.y = y
@@ -55,6 +57,7 @@ class GroundButton(Drawable, pygame.sprite.Sprite):
         self.type = type
         self.color = (0,0,0)
         self.platfrom = platform
+        self.state = state
         self.body = scene.Scene.world.CreateStaticBody(position=(x, y),
         fixtures = b2FixtureDef(shape=b2PolygonShape(box=(self.w/2, self.h/2)), friction=1000, density=1000))
         self.image = pygame.Surface((self.w*b2w,self.h*b2w))
@@ -63,10 +66,15 @@ class GroundButton(Drawable, pygame.sprite.Sprite):
         self.rect.center = x * b2w, 768 - y * b2w
 
     def pressed(self):
+        if self.state == False:
+            self.state = True
+            mixer.Sound('buttonPress.mp3').play()
         scene.Scene.buttonPress(eg.Engine.current_scene, self.platfrom)
 
     def unpressed(self):
-        scene.Scene.buttonUnpress(eg.Engine.current_scene, self.platfrom)
+        if self.state == True:
+            self.state = False
+            scene.Scene.buttonUnpress(eg.Engine.current_scene, self.platfrom)
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
@@ -79,16 +87,33 @@ class Door(Drawable, pygame.sprite.Sprite):
         self.w = .5
         self.h = 1
         self.type = type
-        self.color = (200, 0, 0) if type == 1 else (0, 0, 200)
+        if type == 1:
+            self.image = pygame.image.load('betterRed.png')
+        else:
+            self.image = pygame.image.load('betterBlue.png')
         #self.body = scene.Scene.world.CreateStaticBody(position=(x, y),
         #fixtures = b2FixtureDef(shape=b2PolygonShape(box=(self.w/2, self.h/2)), friction=1000, density=1000))
-        self.image = pygame.Surface((self.w*b2w,self.h*b2w))
-        self.image.fill(self.color)
+
         self.rect = self.image.get_rect()
         self.rect.center = x * b2w, 768 - y * b2w
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
+
+class Stallagtite(Drawable, pygame.sprite.Sprite):
+    def __init__(self, x, y, w, h):
+        super().__init__()
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.image = pygame.image.load('stalagtites.png')
+        self.rect = self.image.get_rect()
+        self.rect.center = x * b2w, 768 - y * b2w
+    
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+
 
 class Ground(Drawable, pygame.sprite.Sprite):
     def __init__(self, x, y, w, h, type):
@@ -100,23 +125,27 @@ class Ground(Drawable, pygame.sprite.Sprite):
         self.type = type
 
         if type == 1:
-            self.color = (200, 0, 0)
+            #red water
+            self.image = pygame.transform.scale(scene.Scene.sprites[0], (w*b2w, h*b2w))
         elif type == 2:
-            self.color = (0, 0, 200)
+            #blue water
+            self.image = pygame.transform.scale(scene.Scene.sprites[2], (w*b2w, h*b2w))
         elif type == 3:
-            self.color = (0, 200, 0)
+            #green water
+            self.image = pygame.transform.scale(scene.Scene.sprites[1], (w*b2w, h*b2w))
         else:
-            self.color = (100, 100, 100)
+            #ground
+            self.image = pygame.transform.scale(scene.Scene.sprites[3], (w*b2w, h*b2w))
 
         self.body = scene.Scene.world.CreateStaticBody(position=(self.x, self.y),
         fixtures = b2FixtureDef(shape=b2PolygonShape(box=(w/2, h/2)), friction=1000, density=1000))
-        self.image = pygame.Surface((w*b2w, h*b2w))
-        self.image.fill(self.color)
+
+        #self.image = pygame.transform.scale(pygame.image.load('sprite.png'), (w*b2w, h*b2w))
         self.rect = self.image.get_rect()
         self.rect.center = self.body.position.x * b2w, 768 - self.body.position.y * b2w
 
     def move(self, new_x):
-        self.x = new_x
+        self.x += new_x
         self.body.position = (self.x, self.y)
         self.rect.center = self.x * b2w, 768 - self.body.position.y * b2w
 
@@ -128,8 +157,8 @@ class Player(DrawableUpdateable, pygame.sprite.DirtySprite):
         super().__init__()
         pygame.sprite.DirtySprite.__init__(self)
         self.player = player
-        color = (255, 0, 0) if player == 1 else (0, 0, 255)
 
+        self.facingRight = True
         self.movingRight = False
         self.movingLeft = False
 
@@ -137,24 +166,27 @@ class Player(DrawableUpdateable, pygame.sprite.DirtySprite):
 
         self.activeButton = None
 
+        self.d = .25 * b2w * 2
         self.body = scene.Scene.world.CreateDynamicBody(position=(1 if player == 1 else 9, .5))
-        shape=b2CircleShape(radius=.25)
-        fixDef = b2FixtureDef(shape=shape, friction=0.9, restitution=.1, density=1)
+        shape = b2CircleShape(radius=.25/2)
+        fixDef = b2FixtureDef(shape=shape, friction=0.9, restitution=.1, density=4)
         box = self.body.CreateFixture(fixDef)
         self.dirty = 2
-        d=.25*b2w*2
-        self.image = pygame.Surface((d,d), pygame.SRCALPHA, 32)
-        self.image.convert_alpha()
-        #self.image.fill((0, 0, 0))
+        if player == 1:
+            self.image = pygame.transform.scale(scene.Scene.sprites[33], (self.d, self.d))
+        else:
+            self.image = pygame.transform.scale(scene.Scene.sprites[5], (self.d, self.d))
         self.rect = self.image.get_rect()
-        pygame.draw.circle(self.image, color, self.rect.center, .25*b2w)
 
     def reset(self):
+        mixer.Sound('Splash.mp3').play()
         self.body.position = (1 if self.player == 1 else 9, .5)
 
     def update(self, delta_time):
-        self.rect.center = self.body.position[0] * b2w, 772 - self.body.position[1] * b2w
+        self.rect.center = self.body.position[0] * b2w, 758 - self.body.position[1] * b2w
         collided = pygame.sprite.spritecollide(self, scene.Scene.groundGroup, False)
+        movableRightCollision = pygame.sprite.spritecollide(self, scene.Scene.moveableRightGroup, False)
+        movableLeftCollision = pygame.sprite.spritecollide(self, scene.Scene.moveableLeftGroup, False)
         doorCollision = pygame.sprite.spritecollide(self, scene.Scene.doorGroup, False)
         buttonCollision = pygame.sprite.spritecollide(self, scene.Scene.buttonGroup, False)
 
@@ -186,32 +218,72 @@ class Player(DrawableUpdateable, pygame.sprite.DirtySprite):
         for event in eg.Engine.events:
             if event.type == pygame.KEYDOWN:
                 if event.key == (pygame.K_w if self.player == 1 else pygame.K_UP):
-                    if len(collided) > 0 or len(buttonCollision) > 0:
+                    if len(collided) > 0 or len(buttonCollision) or len(movableRightCollision) or len(movableLeftCollision) > 0:
                         self.body.ApplyForceToCenter(b2Vec2(0, 70), True)
+                        self.jump()
                 if event.key == (pygame.K_a if self.player == 1 else pygame.K_LEFT):
                     self.movingLeft = True
+                    self.facingRight = False
                 if event.key == (pygame.K_d if self.player == 1 else pygame.K_RIGHT):
                     self.movingRight = True
+                    self.facingRight = True
 
             if event.type == pygame.KEYUP:
                 if event.key == (pygame.K_a if self.player == 1 else pygame.K_LEFT):
                     self.movingLeft = False
+                    if self.player == 1:
+                        self.image = pygame.transform.flip(pygame.transform.scale(scene.Scene.sprites[33], (self.d, self.d)), True, False)
+                    else:
+                        self.image = pygame.transform.flip(pygame.transform.scale(scene.Scene.sprites[5], (self.d, self.d)), True, False)
                     self.body.linearVelocity = b2Vec2(0.0, self.body.linearVelocity.y)
                 if event.key == (pygame.K_d if self.player == 1 else pygame.K_RIGHT):
                     self.movingRight = False
+                    if self.player == 1:
+                        self.image = pygame.transform.scale(scene.Scene.sprites[33], (self.d, self.d))
+                    else:
+                        self.image = pygame.transform.scale(scene.Scene.sprites[5], (self.d, self.d))
                     self.body.linearVelocity = b2Vec2(0.0, self.body.linearVelocity.y)
 
         if self.movingRight:
-            self.body.linearVelocity = b2Vec2(200 * delta_time, self.body.linearVelocity.y)
+            self.body.linearVelocity = b2Vec2(150 * delta_time, self.body.linearVelocity.y)
+            self.walkingRight()
         elif self.movingLeft:
-            self.body.linearVelocity = b2Vec2(-200 * delta_time, self.body.linearVelocity.y)
+            self.body.linearVelocity = b2Vec2(-150 * delta_time, self.body.linearVelocity.y)
+            self.walkingLeft()
         else:
             self.body.linearVelocity = b2Vec2(0.0, self.body.linearVelocity.y)
+
+    def walkingRight(self):
+        if self.player == 1:
+            for i in range(0, 2):
+                self.image = pygame.transform.scale(scene.Scene.sprites[33 + i], (self.d, self.d))
+        else:
+            for i in range(0, 2):
+                self.image = pygame.transform.scale(scene.Scene.sprites[5 + i], (self.d, self.d))
+    
+    def walkingLeft(self):
+        if self.player == 1:
+            for i in range(0, 2):
+                self.image = pygame.transform.flip(pygame.transform.scale(scene.Scene.sprites[33 + i], (self.d, self.d)), True, False)
+        else:
+            for i in range(0, 2):
+                self.image = pygame.transform.flip(pygame.transform.scale(scene.Scene.sprites[5 + i], (self.d, self.d)), True, False)
+    
+    def jump(self):
+        if self.player == 1:
+            if self.facingRight:
+                self.image = pygame.transform.scale(scene.Scene.sprites[36], (self.d, self.d))
+            else:
+                self.image = pygame.transform.flip(pygame.transform.scale(scene.Scene.sprites[36], (self.d, self.d)), True, False)
+        else:
+            if self.facingRight:
+                self.image = pygame.transform.scale(scene.Scene.sprites[8], (self.d, self.d))
+            else:
+                self.image = pygame.transform.flip(pygame.transform.scale(scene.Scene.sprites[8], (self.d, self.d)), True, False)
 
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
-
 
     
 # Reusable button object that can display a rectangle with text in it on the screen and exepts click events
